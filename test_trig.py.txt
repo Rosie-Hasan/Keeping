@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+# Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+
+# art-description: athenaHLT test of the Dev_pp_run3_v1 menu
+# art-type: build                                                                  
+# art-include: master/Athena                                                       
+
+from TrigValTools.TrigValSteering import Test, ExecStep, CheckSteps
+
+import argparse 
+parser = argparse.ArgumentParser()
+parser.add_argument("forks", type=int) 
+parser.add_argument("threads", type=int) 
+parser.add_argument('allocator')
+args = parser.parse_args() 
+
+if args.allocator == 'stdc' : 
+    preload = '--stdcmalloc'
+
+if args.allocator == 'je': 
+    preload = '--stdcmalloc --preloadlib=/cvmfs/atlas.cern.ch/repo/sw/software/22.0/sw/lcg/releases/LCG_100_ATLAS_4/jemalloc/5.2.1/x86_64-centos7-gcc8-opt/lib/libjemalloc.so' 
+
+if args.allocator == 'mi' : 
+    preload = '--stdcmalloc --preloadlib=/afs/cern.ch/user/r/rhasan/current/mimalloc/out/release/libmimalloc.so'
+
+if args.allocator == 'tc': 
+    preload = ' ' 
+print(preload) 
+    
+
+ex = ExecStep.ExecStep()
+ex.type = 'athenaHLT'
+ex.forks = args.forks 
+ex.threads = args.threads
+ex.concurrent_events = args.threads
+ex.slots = args.threads 
+ex.job_options = 'TriggerJobOpts/runHLT_standalone.py'
+ex.input = 'data'
+preamble = '-c "setMenu=\'LS2_v1_TriggerValidation_prescale\';doL1Sim=True;" '   # LS2_v1 to be renamed to Dev_pp_run3_v1
+ex.args = preamble + preload  
+ex.perfmon = False
+
+test = Test.Test()
+test.art_type = 'build'
+test.exec_steps = [ex]
+test.check_steps = CheckSteps.default_check_steps(test)
+
+import sys
+sys.exit(test.run())
